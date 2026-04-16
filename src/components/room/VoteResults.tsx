@@ -5,19 +5,21 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface VoteResultsProps {
   roomId: string;
   questionId: string;
-  questionType: 'multiple_choice' | 'number_scale' | 'word_cloud';
+  questionType: 'multiple_choice' | 'number_scale' | 'word_cloud' | 'free_text';
 }
 
 const VoteResults = ({ roomId, questionId, questionType }: VoteResultsProps) => {
   const [votes, setVotes] = useState<Record<string, number>>({});
   const [options, setOptions] = useState<string[]>([]);
   const [wordCounts, setWordCounts] = useState<Record<string, number>>({});
+  const [textResponses, setTextResponses] = useState<string[]>([]);
 
   useEffect(() => {
     // Clear previous results immediately when question changes
     setVotes({});
     setOptions([]);
     setWordCounts({});
+    setTextResponses([]);
 
     loadQuestion();
     loadVotes();
@@ -62,6 +64,9 @@ const VoteResults = ({ roomId, questionId, questionType }: VoteResultsProps) => 
           });
         });
         setWordCounts(wordFrequency);
+        setWordCounts(wordFrequency);
+      } else if (questionType === 'free_text') {
+        setTextResponses(data.map(vote => vote.selected_option));
       } else {
         const voteCounts: Record<string, number> = {};
         data.forEach((vote) => {
@@ -172,6 +177,25 @@ const VoteResults = ({ roomId, questionId, questionType }: VoteResultsProps) => 
           </ResponsiveContainer>
         ) : (
           <p className="text-center text-muted-foreground py-4">No votes yet</p>
+        )}
+      </div>
+    );
+  }
+
+  if (questionType === 'free_text') {
+    return (
+      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+        {textResponses.length > 0 ? (
+          textResponses.map((response, idx) => (
+            <div 
+              key={idx} 
+              className="p-4 rounded-xl bg-muted/30 border border-border/50 text-sm italic shadow-sm hover:shadow-md transition-shadow duration-200"
+            >
+              "{response}"
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-muted-foreground py-4">No responses yet</p>
         )}
       </div>
     );

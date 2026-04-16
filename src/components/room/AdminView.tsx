@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Play, RefreshCw } from "lucide-react";
+import { Play, RefreshCw, Copy, Link as LinkIcon } from "lucide-react";
 import VoteResults from "./VoteResults";
 import { PredefinedQuestion } from "@/data/predefinedQuestions";
 import * as questionModules from "@/data/index";
@@ -141,17 +141,39 @@ const AdminView = ({ roomId, roomCode }: AdminViewProps) => {
     }
   };
 
+  const copyRoomLink = () => {
+    const url = window.location.origin + (import.meta.env.BASE_URL || '/') + (roomCode === undefined ? '' : roomCode);
+    navigator.clipboard.writeText(url);
+    toast.success("Link copied to clipboard!");
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-6xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Admin Panel</h1>
-          <p className="text-muted-foreground">Room Code: {roomCode}</p>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-card p-6 rounded-xl border-2 shadow-sm">
+        <div className="flex items-center gap-6">
+          <div className="p-2 bg-white rounded-lg border shadow-sm">
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(window.location.origin + (import.meta.env.BASE_URL || '/') + roomCode)}`} 
+              alt="Room QR Code"
+              className="w-24 h-24"
+            />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Admin Panel</h1>
+            <p className="text-xl font-mono text-primary font-bold mt-1">Room Code: {roomCode}</p>
+            <p className="text-sm text-muted-foreground mt-1">Scan to join the quiz</p>
+          </div>
         </div>
-        <Button variant="outline" onClick={clearResults}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Clear Results
-        </Button>
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+          <Button variant="secondary" onClick={copyRoomLink} className="flex-1 md:flex-none">
+            <Copy className="h-4 w-4 mr-2" />
+            Copy Participant Link
+          </Button>
+          <Button variant="outline" onClick={clearResults} className="flex-1 md:flex-none">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Clear Results
+          </Button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

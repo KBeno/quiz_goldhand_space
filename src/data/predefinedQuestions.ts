@@ -1,7 +1,7 @@
 export interface PredefinedQuestion {
   id: string;
   question_text: string;
-  question_type: 'multiple_choice' | 'number_scale' | 'word_cloud';
+  question_type: 'multiple_choice' | 'number_scale' | 'word_cloud' | 'free_text';
   options?: string[];
   correct_answer?: string;
   explanation?: string;

@@ -17,7 +17,7 @@ interface Question {
   id: string;
   question_text: string;
   options: string[];
-  question_type: 'multiple_choice' | 'number_scale' | 'word_cloud';
+  question_type: 'multiple_choice' | 'number_scale' | 'word_cloud' | 'free_text';
   correct_answer?: string;
   explanation?: string;
   results_revealed?: boolean;
@@ -30,6 +30,7 @@ const ParticipantView = ({ roomId, roomCode }: ParticipantViewProps) => {
   const [anonymousUserId, setAnonymousUserId] = useState<string>("");
   const [numberValue, setNumberValue] = useState<number>(5);
   const [words, setWords] = useState<string[]>(["", ""]);
+  const [freeText, setFreeText] = useState<string>("");
   const [hasVoted, setHasVoted] = useState(false);
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
@@ -50,6 +51,7 @@ const ParticipantView = ({ roomId, roomCode }: ParticipantViewProps) => {
     setSelectedOption(null);
     setNumberValue(5);
     setWords(["", ""]);
+    setFreeText("");
     setHasVoted(false);
     setShowCorrectAnswer(false);
   }, [roomId]);
@@ -151,6 +153,7 @@ const ParticipantView = ({ roomId, roomCode }: ParticipantViewProps) => {
             setSelectedOption(null);
             setNumberValue(5);
             setWords(["", ""]);
+            setFreeText("");
             setHasVoted(false);
             setShowCorrectAnswer(false);
             // Start countdown if there's a timer
@@ -283,6 +286,39 @@ const ParticipantView = ({ roomId, roomCode }: ParticipantViewProps) => {
     setWords([...words, ""]);
   };
 
+  const submitFreeTextVote = async () => {
+    if (!anonymousUserId) {
+      toast.error("Unable to vote. Please refresh the page.");
+      return;
+    }
+
+    if (!freeText.trim()) {
+      toast.error("Please enter your feedback");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("votes")
+        .upsert({
+          room_id: roomId,
+          question_id: question.id,
+          anonymous_user_id: anonymousUserId,
+          selected_option: freeText
+        }, {
+          onConflict: "room_id,anonymous_user_id"
+        });
+
+      if (error) throw error;
+
+      setHasVoted(true);
+      toast.success("Feedback submitted!");
+    } catch (error) {
+      console.error("Error voting:", error);
+      toast.error("Failed to submit feedback");
+    }
+  };
+
   if (!question) {
     return (
       <div className="container mx-auto p-4 max-w-4xl">
@@ -297,145 +333,213 @@ const ParticipantView = ({ roomId, roomCode }: ParticipantViewProps) => {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-muted-foreground">Room: {roomCode}</h1>
-      </div>
-
-      <Card className="border-2">
-        <CardHeader>
-          <CardTitle className="text-2xl">{question.question_text}</CardTitle>
-          {remainingTime !== null && remainingTime > 0 && question.correct_answer && (
-            <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Time Remaining:</span>
-                <span className="text-2xl font-bold text-primary">{remainingTime}s</span>
-              </div>
+    <div className="container mx-auto p-4 max-w-6xl">
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Sidebar with QR Code */}
+        <div className="lg:w-48 flex-shrink-0">
+          <Card className="sticky top-4 border-2 p-4 flex flex-col items-center gap-3 bg-card/80 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 group">
+            <div className="relative p-2 bg-white rounded-lg border shadow-inner group-hover:scale-105 transition-transform duration-300">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + (import.meta.env.BASE_URL || '/') + roomCode)}`} 
+                alt="Room QR Code"
+                className="w-32 h-32 md:w-40 md:h-40 lg:w-32 lg:h-32"
+              />
             </div>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {question.question_type === 'multiple_choice' && (
-            <div className="space-y-3">
-              {question.options.map((option, index) => (
-                <Button
-                  key={index}
-                  onClick={() => vote(option)}
-                  variant={selectedOption === option ? "default" : "outline"}
-                  className="w-full justify-start text-left h-auto py-4 px-6"
-                  size="lg"
-                  disabled={hasVoted}
-                >
-                  <span className="font-semibold mr-3">
-                    {String.fromCharCode(65 + index)}.
-                  </span>
-                  {option}
-                </Button>
-              ))}
+            <div className="text-center">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary mb-1">Join Room</p>
+              <p className="text-lg font-mono font-black text-foreground">{roomCode}</p>
+              <p className="text-[10px] text-muted-foreground mt-2 leading-tight">Scan this code to join on your mobile device</p>
+            </div>
+          </Card>
+        </div>
 
-              {showCorrectAnswer && question.correct_answer && (
-                <div className={`p-4 rounded-lg ${selectedOption === question.correct_answer
-                  ? 'bg-green-500/10 border border-green-500/20'
-                  : 'bg-orange-500/10 border border-orange-500/20'
-                  }`}>
-                  <p className="font-semibold mb-2">
-                    {selectedOption === question.correct_answer ? '✓ Correct!' : '✗ Incorrect'}
-                  </p>
-                  <p className="text-sm mb-2">
-                    The correct answer is: <span className="font-semibold">{question.correct_answer}</span>
-                  </p>
-                  {question.explanation && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {question.explanation}
-                    </p>
+        {/* Main Content */}
+        <div className="flex-1 space-y-6">
+          <div className="flex items-center justify-between gap-4 bg-card/50 p-6 rounded-xl border border-border/50 backdrop-blur-sm shadow-sm">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Live Quiz Room
+            </h1>
+            <div className="px-4 py-2 bg-primary/10 rounded-full border border-primary/20">
+              <span className="text-sm font-bold text-primary">Active Session</span>
+            </div>
+          </div>
+
+          <Card className="border-2 shadow-lg overflow-hidden transition-shadow hover:shadow-xl">
+            <CardHeader className="bg-muted/30 border-b">
+              <CardTitle className="text-2xl pt-2">{question.question_text}</CardTitle>
+              {remainingTime !== null && remainingTime > 0 && question.correct_answer && (
+                <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20 animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Time Remaining:</span>
+                    <span className="text-2xl font-bold text-primary">{remainingTime}s</span>
+                  </div>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              {question.question_type === 'multiple_choice' && (
+                <div className="space-y-3">
+                  {question.options.map((option, index) => (
+                    <Button
+                      key={index}
+                      onClick={() => vote(option)}
+                      variant={selectedOption === option ? "default" : "outline"}
+                      className={`w-full justify-start text-left h-auto py-5 px-6 text-lg transition-all ${
+                        selectedOption === option ? "scale-[1.02] shadow-md" : "hover:border-primary/50"
+                      }`}
+                      size="lg"
+                      disabled={hasVoted}
+                    >
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold mr-4 shrink-0 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                        {String.fromCharCode(65 + index)}
+                      </span>
+                      {option}
+                    </Button>
+                  ))}
+
+                  {showCorrectAnswer && question.correct_answer && (
+                    <div className={`p-6 rounded-xl animate-in slide-in-from-top-4 duration-300 ${selectedOption === question.correct_answer
+                      ? 'bg-green-500/10 border-2 border-green-500/30'
+                      : 'bg-orange-500/10 border-2 border-orange-500/30'
+                      }`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          selectedOption === question.correct_answer ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
+                        }`}>
+                          {selectedOption === question.correct_answer ? '✓' : '✗'}
+                        </div>
+                        <p className="font-bold text-lg">
+                          {selectedOption === question.correct_answer ? 'Correct Answer!' : 'Incorrect'}
+                        </p>
+                      </div>
+                      <p className="text-base mb-3">
+                        The correct answer is: <span className="font-bold text-green-600">{question.correct_answer}</span>
+                      </p>
+                      {question.explanation && (
+                        <div className="pt-3 border-t border-border/50">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {question.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
-            </div>
-          )}
 
-          {question.question_type === 'number_scale' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between text-sm font-medium text-muted-foreground">
-                <span>Strongly Disagree</span>
-                <span>Strongly Agree</span>
-              </div>
-              <Slider
-                min={0}
-                max={10}
-                step={1}
-                value={[numberValue]}
-                onValueChange={(value) => setNumberValue(value[0])}
-                disabled={hasVoted}
-                className="w-full"
-              />
-              <div className="text-center">
-                <span className="text-5xl font-bold text-primary">{numberValue}</span>
-              </div>
-              <Button
-                onClick={submitNumberVote}
-                disabled={hasVoted}
-                className="w-full"
-                size="lg"
-              >
-                {hasVoted ? "Vote Submitted" : "Submit Vote"}
-              </Button>
-            </div>
-          )}
-
-          {question.question_type === 'word_cloud' && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Enter your words:</p>
-              {words.map((word, index) => (
-                <Input
-                  key={index}
-                  placeholder={`Word ${index + 1}`}
-                  value={word}
-                  onChange={(e) => {
-                    const newWords = [...words];
-                    newWords[index] = e.target.value;
-                    setWords(newWords);
-                  }}
-                  disabled={hasVoted}
-                />
-              ))}
-              {!hasVoted && (
-                <Button
-                  onClick={addWordInput}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  Add More Words
-                </Button>
+              {question.question_type === 'number_scale' && (
+                <div className="space-y-8 py-4">
+                  <div className="flex items-center justify-between text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                    <span>Strongly Disagree</span>
+                    <span>Strongly Agree</span>
+                  </div>
+                  <div className="px-2">
+                    <Slider
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={[numberValue]}
+                      onValueChange={(value) => setNumberValue(value[0])}
+                      disabled={hasVoted}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex justify-center p-8 bg-muted/20 rounded-2xl border-2 border-dashed border-border/50">
+                    <span className="text-7xl font-black text-primary drop-shadow-sm">{numberValue}</span>
+                  </div>
+                  <Button
+                    onClick={submitNumberVote}
+                    disabled={hasVoted}
+                    className="w-full py-8 text-xl font-bold shadow-lg transition-transform active:scale-[0.98]"
+                    size="lg"
+                  >
+                    {hasVoted ? "Vote Recorded" : "Submit Rating"}
+                  </Button>
+                </div>
               )}
-              <Button
-                onClick={submitWordVote}
-                disabled={hasVoted}
-                className="w-full"
-                size="lg"
-              >
-                {hasVoted ? "Words Submitted" : "Submit Words"}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {(!question.correct_answer || question.results_revealed) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Live Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <VoteResults
-              roomId={roomId}
-              questionId={question.id}
-              questionType={question.question_type}
-            />
-          </CardContent>
-        </Card>
-      )}
+              {question.question_type === 'word_cloud' && (
+                <div className="space-y-6">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Your Contributions:</p>
+                  <div className="grid gap-4">
+                    {words.map((word, index) => (
+                      <Input
+                        key={index}
+                        placeholder={`Type word ${index + 1}...`}
+                        value={word}
+                        onChange={(e) => {
+                          const newWords = [...words];
+                          newWords[index] = e.target.value;
+                          setWords(newWords);
+                        }}
+                        disabled={hasVoted}
+                        className="py-6 px-4 text-lg border-2 focus-visible:ring-primary/20"
+                      />
+                    ))}
+                  </div>
+                  {!hasVoted && (
+                    <Button
+                      onClick={addWordInput}
+                      variant="outline"
+                      className="w-full border-2 border-dashed hover:bg-muted"
+                      size="lg"
+                    >
+                      + Add More Words
+                    </Button>
+                  )}
+                  <Button
+                    onClick={submitWordVote}
+                    disabled={hasVoted}
+                    className="w-full py-8 text-xl font-bold shadow-lg transition-transform active:scale-[0.98]"
+                    size="lg"
+                  >
+                    {hasVoted ? "Submission Received" : "Submit Words"}
+                  </Button>
+                </div>
+              )}
+
+              {question.question_type === 'free_text' && (
+                <div className="space-y-6">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Your Feedback:</p>
+                  <textarea
+                    placeholder="Tell us what you think..."
+                    value={freeText}
+                    onChange={(e) => setFreeText(e.target.value)}
+                    disabled={hasVoted}
+                    className="w-full min-h-[200px] p-6 rounded-xl border-2 bg-background/50 resize-none focus:ring-4 focus:ring-primary/10 outline-none transition-all text-lg leading-relaxed shadow-inner"
+                  />
+                  <Button
+                    onClick={submitFreeTextVote}
+                    disabled={hasVoted}
+                    className="w-full py-8 text-xl font-bold shadow-lg transition-transform active:scale-[0.98]"
+                    size="lg"
+                  >
+                    {hasVoted ? "Feedback Sent" : "Submit Feedback"}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {(!question.correct_answer || question.results_revealed) && (
+            <Card className="border-2 shadow-lg">
+              <CardHeader className="border-b bg-muted/20">
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  Live Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <VoteResults
+                  roomId={roomId}
+                  questionId={question.id}
+                  questionType={question.question_type as any}
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

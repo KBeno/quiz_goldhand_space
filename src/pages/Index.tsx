@@ -14,7 +14,7 @@ const Index = () => {
   const [isJoining, setIsJoining] = useState(false);
 
   const generateRoomCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    return Math.floor(Math.random() * 999999 + 1).toString();
   };
 
   const createRoom = async () => {

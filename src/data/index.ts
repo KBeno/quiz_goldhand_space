@@ -7,6 +7,7 @@ import { lakeflowJobsQuestions } from './lakeflowJobsQuestions';
 import { knowledgeCheckQuestions } from './knowledgeCheckQuestions';
 import { sparkDeclarativeQuestions } from './sparkDeclarativeQuestions';
 import { generalDatabricksQuestions } from './generalDatabricksQuestions';
+import { feedbackQuestions } from './feedbackQuestions';
 
 export const orderedCategories = [
     { key: 'getToKnowEachOtherQuestions', value: getToKnowQuestions },
@@ -17,6 +18,7 @@ export const orderedCategories = [
     { key: 'lakeflowJobsQuestions', value: lakeflowJobsQuestions },
     { key: 'sparkDeclarativeQuestions', value: sparkDeclarativeQuestions },
     { key: 'devopsQuestions', value: devopsQuestions },
+    { key: 'feedbackQuestions', value: feedbackQuestions },
 ];
 
 export * from './devopsQuestions';
@@ -28,3 +30,4 @@ export * from './lakeflowJobsQuestions';
 export * from './knowledgeCheckQuestions';
 export * from './sparkDeclarativeQuestions';
 export * from './generalDatabricksQuestions';
+export * from './feedbackQuestions';

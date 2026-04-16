@@ -84,5 +84,29 @@ export const funIcebreakerQuestions: PredefinedQuestion[] = [
     question_text: "Describe your mood right now in 3 words",
     question_type: "word_cloud",
     options: []
-  }
+  },
+  {
+    id: "fun_15",
+    question_text: "What's your current relationship status with data?",
+    question_type: "multiple_choice",
+    options: ["It's complicated", "Married to the data", "We are just friends", "We're currently on a break"]
+  },
+  {
+    id: "fun_16",
+    question_text: "If your code was a coffee, what would it be?",
+    question_type: "multiple_choice",
+    options: ["Espresso: Short, strong, keeps me awake", "Decaf: Looks like code but does nothing", "Frappuccino: Full of syntax sugar", "Americano: Watered down but gets the job done"]
+  },
+  {
+    id: "fun_17",
+    question_text: "What is your primary method of debugging?",
+    question_type: "multiple_choice",
+    options: ["Print() statements everywhere", "Rubber duck debugging", "StackOverflow copy-pasting", "Using an actual debugger"]
+  },
+  {
+    id: "fun_18",
+    question_text: "How do you normally pronounce SQL?",
+    question_type: "multiple_choice",
+    options: ["S-Q-L (Ess-Queue-El)", "Sequel", "Squirrel", "I prefer not to speak of it"]
+  },
 ];
