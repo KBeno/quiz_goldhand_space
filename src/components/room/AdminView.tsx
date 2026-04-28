@@ -9,6 +9,7 @@ import VoteResults from "./VoteResults";
 import { PredefinedQuestion } from "@/data/predefinedQuestions";
 import * as questionModules from "@/data/index";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CustomQuestionDialog from "./CustomQuestionDialog";
 
 interface AdminViewProps {
   roomId: string;
@@ -55,8 +56,11 @@ const AdminView = ({ roomId, roomCode }: AdminViewProps) => {
     }
   };
 
-  const startQuestion = async () => {
-    if (!selectedQuestion) {
+  const startQuestion = async (questionArg?: PredefinedQuestion, timerArg?: number) => {
+    const question = questionArg ?? selectedQuestion;
+    const timer = timerArg !== undefined ? timerArg : timerSeconds;
+
+    if (!question) {
       toast.error("Please select a question");
       return;
     }
@@ -76,13 +80,13 @@ const AdminView = ({ roomId, roomCode }: AdminViewProps) => {
         .from("questions")
         .insert([{
           room_id: roomId,
-          question_text: selectedQuestion.question_text,
-          question_type: selectedQuestion.question_type,
-          options: selectedQuestion.options || [],
-          correct_answer: selectedQuestion.correct_answer,
-          explanation: selectedQuestion.explanation,
-          timer_seconds: selectedQuestion.correct_answer ? timerSeconds : null,
-          results_revealed: !selectedQuestion.correct_answer
+          question_text: question.question_text,
+          question_type: question.question_type,
+          options: question.options || [],
+          correct_answer: question.correct_answer,
+          explanation: question.explanation,
+          timer_seconds: question.correct_answer ? timer : null,
+          results_revealed: !question.correct_answer
         }])
         .select()
         .single();
@@ -91,13 +95,13 @@ const AdminView = ({ roomId, roomCode }: AdminViewProps) => {
 
       setQuestionId(data.id);
       setCurrentQuestionType(data.question_type);
-      setHasCorrectAnswer(!!selectedQuestion.correct_answer);
+      setHasCorrectAnswer(!!question.correct_answer);
 
       // Start timer for knowledge check questions
-      if (selectedQuestion.correct_answer && timerSeconds > 0) {
+      if (question.correct_answer && timer > 0) {
         setTimeout(async () => {
           await revealResults();
-        }, timerSeconds * 1000);
+        }, timer * 1000);
       }
 
       toast.success("Question started!");
@@ -182,6 +186,17 @@ const AdminView = ({ roomId, roomCode }: AdminViewProps) => {
             <CardTitle>Select Question</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <CustomQuestionDialog onStart={(q, t) => startQuestion(q, t)} />
+
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or pick from topics</span>
+              </div>
+            </div>
+
             <div>
               <label className="text-sm font-medium mb-2 block">Category</label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -273,7 +288,7 @@ const AdminView = ({ roomId, roomCode }: AdminViewProps) => {
                   </div>
                 )}
 
-                <Button onClick={startQuestion} disabled={isStarting} className="w-full">
+                <Button onClick={() => startQuestion()} disabled={isStarting} className="w-full">
                   <Play className="h-4 w-4 mr-2" />
                   {isStarting ? "Starting..." : "Start This Question"}
                 </Button>
