@@ -3,6 +3,15 @@ import { PredefinedQuestion } from "./predefinedQuestions";
 export const knowledgeCheckQuestions: PredefinedQuestion[] = [
   {
     id: "know_1",
+    question_text: "Am I wrong??",
+    question_type: "multiple_choice",
+    options: [
+      "No",
+      "Yes",
+      ]
+  },
+  {
+    id: "know_1",
     question_text: "What is lazy evaluation in Spark?",
     question_type: "multiple_choice",
     options: [
